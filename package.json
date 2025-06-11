@@ -20,14 +20,7 @@
     "typescript": "^5.8.3",
     "vercel": "^42.3.0",
     "websocket": "^1.0.35"
-  },
-  "devDependencies": {
-    "@types/express": "^5.0.2",
-    "@types/node": "^22.15.17",
-    "nodemon": "^3.1.10",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
-  },
+  },  
   "scripts": {
     "build": "tsc",
     "start": "nodemon --exec ts-node src/index.js",
