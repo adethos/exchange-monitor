@@ -5,10 +5,9 @@
   "main": "src/index.js",
   "license": "MIT",
   "dependencies": {
-    "@types/express": "^5.0.2",
-    "@types/node": "^22.15.17",
     "@types/cors": "^2.8.18",
-    "nodemon": "^3.1.10",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.0",
     "@types/websocket": "^1.0.10",
     "@types/ws": "^8.18.1",
     "axios": "^1.9.0",
@@ -16,10 +15,11 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "vercel": "^42.3.0",
-    "websocket": "^1.0.35",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
-    "ts-node": "^10.9.2"
+    "vercel": "^42.3.0",
+    "websocket": "^1.0.35"
   },
   "devDependencies": {
     "@types/express": "^5.0.2",
