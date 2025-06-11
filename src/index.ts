@@ -1,11 +1,12 @@
 import express, { RequestHandler } from 'express';
 import cors from 'cors';
-// import {config} from './config'
+import {config} from './config'
 import { exchangeRoutes } from './routes/exchange.routes';
 import { startDataFetcher, getCachedData } from './services/dataFetcherService';
 
 const app = express();
-// const PORT = config.port || 8080;
+// Use PORT from environment variable (Render.com) or fallback to config port (local)
+const PORT = parseInt(process.env.PORT || '', 10) || config.port || 8080;
 
 
 // Middleware
@@ -140,11 +141,11 @@ startDataFetcher().catch(error => {
     console.error('Failed to start data fetcher:', error);
 });
 
-// // Start server
-// app.listen(PORT, () => {
-//     console.log(`Server running on port ${PORT}`);
-//     console.log(`Health check: http://localhost:${PORT}/health`);
-//     console.log(`API endpoints: http://localhost:${PORT}/api`);
-// });
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+    console.log(`API endpoints: http://localhost:${PORT}/api`);
+});
 
 export default app;
