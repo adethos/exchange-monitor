@@ -39,64 +39,120 @@ app.get('/search', (req, res) => {
     res.json(['price', 'volume', 'trades']);
 });
 
-app.post('/query', ((req: Request, res: Response) => {
+// app.post('/query', ((req: Request, res: Response) => {
+//     const { targets } = req.body;
+//     if (!targets || !Array.isArray(targets)) {
+//         return res.status(400).json({ error: 'Invalid request format' });
+//     }
+
+//     const data = getCachedData();
+//     const results = targets.map((target: any) => {
+//         if (target.target === 'positions') {
+//             const exchange = target.exchange || data.currentExchange;
+//             const account = target.account || data.currentAccount;
+//             const positions = data.exchanges[exchange]?.[account]?.positions || [];
+
+//             // Format for Grafana Table panel
+//             return {
+//                 target: 'positions',
+//                 datapoints: positions.map(pos => [
+//                     [
+//                         pos.symbol,
+//                         pos.side,
+//                         pos.size,
+//                         pos.notionalValue,
+//                         pos.entryPrice,
+//                         pos.markPrice,
+//                         pos.liquidationPrice,
+//                         pos.liquidationPriceChangePercent,
+//                         pos.currentFundingRate,
+//                         pos.nextFundingRate,
+//                         pos.leverage,
+//                         pos.unrealizedPnl,
+//                         pos.realizedPnl,
+//                         pos.marginMode
+//                     ],
+//                     Date.now()
+//                 ]),
+//                 columns: [
+//                     { text: 'symbol', type: 'string' },
+//                     { text: 'side', type: 'string' },
+//                     { text: 'size', type: 'number' },
+//                     { text: 'notionalValue', type: 'number' },
+//                     { text: 'entryPrice', type: 'number' },
+//                     { text: 'markPrice', type: 'number' },
+//                     { text: 'liquidationPrice', type: 'number' },
+//                     { text: 'liquidationPriceChangePercent', type: 'number' },
+//                     { text: 'currentFundingRate', type: 'number' },
+//                     { text: 'nextFundingRate', type: 'number' },
+//                     { text: 'leverage', type: 'number' },
+//                     { text: 'unrealizedPnl', type: 'number' },
+//                     { text: 'realizedPnl', type: 'number' },
+//                     { text: 'marginMode', type: 'string' }
+//                 ]
+//             };
+//         }
+//         return null;
+//     }).filter(Boolean);
+
+//     res.json(results);
+// }) as RequestHandler);
+
+app.post('/query', (req, res) => {
     const { targets } = req.body;
-    if (!targets || !Array.isArray(targets)) {
-        return res.status(400).json({ error: 'Invalid request format' });
-    }
+    console.log('query ruequest:', req.body);
 
     const data = getCachedData();
+
     const results = targets.map((target: any) => {
         if (target.target === 'positions') {
-            const exchange = target.exchange || data.currentExchange;
-            const account = target.account || data.currentAccount;
+            const exchange = target.exchange;
+            const account = target.account;
             const positions = data.exchanges[exchange]?.[account]?.positions || [];
 
             // Format for Grafana Table panel
             return {
-                target: 'positions',
-                datapoints: positions.map(pos => [
-                    [
-                        pos.symbol,
-                        pos.side,
-                        pos.size,
-                        pos.notionalValue,
-                        pos.entryPrice,
-                        pos.markPrice,
-                        pos.liquidationPrice,
-                        pos.liquidationPriceChangePercent,
-                        pos.currentFundingRate,
-                        pos.nextFundingRate,
-                        pos.leverage,
-                        pos.unrealizedPnl,
-                        pos.realizedPnl,
-                        pos.marginMode
-                    ],
-                    Date.now()
-                ]),
                 columns: [
-                    { text: 'symbol', type: 'string' },
-                    { text: 'side', type: 'string' },
-                    { text: 'size', type: 'number' },
-                    { text: 'notionalValue', type: 'number' },
-                    { text: 'entryPrice', type: 'number' },
-                    { text: 'markPrice', type: 'number' },
-                    { text: 'liquidationPrice', type: 'number' },
-                    { text: 'liquidationPriceChangePercent', type: 'number' },
-                    { text: 'currentFundingRate', type: 'number' },
-                    { text: 'nextFundingRate', type: 'number' },
-                    { text: 'leverage', type: 'number' },
-                    { text: 'unrealizedPnl', type: 'number' },
-                    { text: 'realizedPnl', type: 'number' },
-                    { text: 'marginMode', type: 'string' }
-                ]
+                    { text: 'symbol' },
+                    { text: 'side' },
+                    { text: 'size' },
+                    { text: 'notionalValue' },
+                    { text: 'entryPrice' },
+                    { text: 'markPrice' },
+                    { text: 'liquidationPrice' },
+                    { text: 'liquidationPriceChangePercent' },
+                    { text: 'currentFundingRate' },
+                    { text: 'nextFundingRate' },
+                    { text: 'leverage' },
+                    { text: 'unrealizedPnl' },
+                    { text: 'realizedPnl' },
+                    { text: 'marginMode' }
+                ],
+                rows: positions.map(pos => [
+                    pos.symbol,
+                    pos.side,
+                    pos.size,
+                    pos.notionalValue,
+                    pos.entryPrice,
+                    pos.markPrice,
+                    pos.liquidationPrice,
+                    pos.liquidationPriceChangePercent,
+                    pos.currentFundingRate,
+                    pos.nextFundingRate,
+                    pos.leverage,
+                    pos.unrealizedPnl,
+                    pos.realizedPnl,
+                    pos.marginMode
+                ]),
+                type: 'table'
             };
         }
-        return null;
-    }).filter(Boolean);
+    });
 
     res.json(results);
-}) as RequestHandler);
+    console.log("result:", JSON.stringify(results, null, 2));
+
+});
 
 app.post('/annotations', (req, res) => {
     res.json([]);
