@@ -36,62 +36,6 @@ app.get('/search', (req, res) => {
     res.json(['price', 'volume', 'trades']);
 });
 
-app.post('/query', (req, res) => {
-    const { targets } = req.body;
-    console.log('query ruequest:', req.body);
-    
-    const data = getCachedData();
-
-    const results = targets.map((target: any) => {
-        if (target.target === 'positions') {
-            const exchange = target.exchange;
-            const account = target.account;
-            const positions = data.exchanges[exchange]?.[account]?.positions || [];
-
-            // Format for Grafana Table panel
-            return {
-                columns: [
-                    { text: 'symbol' },
-                    { text: 'side' },
-                    { text: 'size' },
-                    { text: 'notionalValue' },
-                    { text: 'entryPrice' },
-                    { text: 'markPrice' },
-                    { text: 'liquidationPrice' },
-                    { text: 'liquidationPriceChangePercent' },
-                    { text: 'currentFundingRate' },
-                    { text: 'nextFundingRate' },
-                    { text: 'leverage' },
-                    { text: 'unrealizedPnl' },
-                    { text: 'realizedPnl' },
-                    { text: 'marginMode' }
-                ],
-                rows: positions.map(pos => [
-                    pos.symbol,
-                    pos.side,
-                    pos.size,
-                    pos.notionalValue,
-                    pos.entryPrice,
-                    pos.markPrice,
-                    pos.liquidationPrice,
-                    pos.liquidationPriceChangePercent,
-                    pos.currentFundingRate,
-                    pos.nextFundingRate,
-                    pos.leverage,
-                    pos.unrealizedPnl,
-                    pos.realizedPnl,
-                    pos.marginMode
-                ]),
-                type: 'table'
-            };
-        }        
-    });
-
-    res.json(results);
-    console.log("result:", JSON.stringify(results, null, 2));
-    
-});
-
 app.post('/annotations', (req, res) => {
     res.json([]);
 });
