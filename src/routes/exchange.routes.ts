@@ -56,40 +56,44 @@ router.post('/query', ((req: Request, res: Response) => {
             const account = target.account || data.currentAccount;
             const positions = data.exchanges[exchange]?.[account]?.positions || [];
 
+            // Format for Grafana Table panel
             return {
-                columns: [
-                    { text: 'symbol' },
-                    { text: 'side' },
-                    { text: 'size' },
-                    { text: 'notionalValue' },
-                    { text: 'entryPrice' },
-                    { text: 'markPrice' },
-                    { text: 'liquidationPrice' },
-                    { text: 'liquidationPriceChangePercent' },
-                    { text: 'currentFundingRate' },
-                    { text: 'nextFundingRate' },
-                    { text: 'leverage' },
-                    { text: 'unrealizedPnl' },
-                    { text: 'realizedPnl' },
-                    { text: 'marginMode' }
-                ],
-                rows: positions.map(pos => [
-                    pos.symbol,
-                    pos.side,
-                    pos.size,
-                    pos.notionalValue,
-                    pos.entryPrice,
-                    pos.markPrice,
-                    pos.liquidationPrice,
-                    pos.liquidationPriceChangePercent,
-                    pos.currentFundingRate,
-                    pos.nextFundingRate,
-                    pos.leverage,
-                    pos.unrealizedPnl,
-                    pos.realizedPnl,
-                    pos.marginMode
+                target: 'positions',
+                datapoints: positions.map(pos => [
+                    [
+                        pos.symbol,
+                        pos.side,
+                        pos.size,
+                        pos.notionalValue,
+                        pos.entryPrice,
+                        pos.markPrice,
+                        pos.liquidationPrice,
+                        pos.liquidationPriceChangePercent,
+                        pos.currentFundingRate,
+                        pos.nextFundingRate,
+                        pos.leverage,
+                        pos.unrealizedPnl,
+                        pos.realizedPnl,
+                        pos.marginMode
+                    ],
+                    Date.now()
                 ]),
-                type: 'table'
+                columns: [
+                    { text: 'symbol', type: 'string' },
+                    { text: 'side', type: 'string' },
+                    { text: 'size', type: 'number' },
+                    { text: 'notionalValue', type: 'number' },
+                    { text: 'entryPrice', type: 'number' },
+                    { text: 'markPrice', type: 'number' },
+                    { text: 'liquidationPrice', type: 'number' },
+                    { text: 'liquidationPriceChangePercent', type: 'number' },
+                    { text: 'currentFundingRate', type: 'number' },
+                    { text: 'nextFundingRate', type: 'number' },
+                    { text: 'leverage', type: 'number' },
+                    { text: 'unrealizedPnl', type: 'number' },
+                    { text: 'realizedPnl', type: 'number' },
+                    { text: 'marginMode', type: 'string' }
+                ]
             };
         }
         return null;
