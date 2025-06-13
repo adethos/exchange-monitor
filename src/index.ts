@@ -40,11 +40,10 @@ app.get('/search', (req, res) => {
 });
 
 app.post('/query', (req, res) => {
-    const { targets, range } = req.body;
-    console.log('query request:', req.body);
+    const { targets } = req.body;
+    console.log('query ruequest:', req.body);
 
     const data = getCachedData();
-    const now = Date.now();
 
     const results = targets.map((target: any) => {
         if (target.target === 'positions') {
@@ -52,10 +51,9 @@ app.post('/query', (req, res) => {
             const account = target.account;
             const positions = data.exchanges[exchange]?.[account]?.positions || [];
 
-            // Format for Grafana Table panel with time information
+            // Format for Grafana Table panel
             return {
                 columns: [
-                    { text: 'Time', type: 'time' },
                     { text: 'symbol' },
                     { text: 'side' },
                     { text: 'size' },
@@ -72,7 +70,6 @@ app.post('/query', (req, res) => {
                     { text: 'marginMode' }
                 ],
                 rows: positions.map(pos => [
-                    now, // Add timestamp for each row
                     pos.symbol,
                     pos.side,
                     pos.size,
@@ -95,6 +92,7 @@ app.post('/query', (req, res) => {
 
     res.json(results);
     console.log("result:", JSON.stringify(results, null, 2));
+
 });
 
 app.post('/annotations', (req, res) => {
