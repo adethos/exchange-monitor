@@ -256,7 +256,13 @@ export async function startDataFetcher(): Promise<void> {
 
 // Get the current cached data
 export function getCachedData(): CombinedData {
-    return cachedData;
+    // Create a deep copy of the data to ensure Grafana gets fresh data
+    const data = JSON.parse(JSON.stringify(cachedData));
+    
+    // Add timestamp to help with debugging
+    data.lastUpdate = new Date().toISOString();
+    
+    return data;
 }
 
 // Set current exchange and account
