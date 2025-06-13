@@ -47,12 +47,12 @@ const errorCounts: { [exchange: string]: { [accountId: string]: number } } = {
 
 // Maximum consecutive errors before backing off
 const MAX_CONSECUTIVE_ERRORS = 5;
-// Initial backoff time in ms (10 seconds)
+// Initial backoff time in ms (30 seconds)
 const INITIAL_BACKOFF = 30000;
-// Data fetch interval in ms (1 minute)
-const FETCH_INTERVAL = 30000;
-// Health check threshold in ms (2 minutes)
-const HEALTH_CHECK_THRESHOLD = 60000;
+// Data fetch interval in ms (30 seconds)
+const FETCH_INTERVAL = 25000;
+// Health check threshold in ms (1 minutes)
+const HEALTH_CHECK_THRESHOLD = 30000;
 
 // Backoff times for each exchange and account
 const backoffTimes: { [exchange: string]: { [accountId: string]: number } } = {
