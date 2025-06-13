@@ -47,8 +47,13 @@ const errorCounts: { [exchange: string]: { [accountId: string]: number } } = {
 
 // Maximum consecutive errors before backing off
 const MAX_CONSECUTIVE_ERRORS = 5;
-// Initial backoff time in ms (1 minute)
-const INITIAL_BACKOFF = 10000;
+// Initial backoff time in ms (10 seconds)
+const INITIAL_BACKOFF = 30000;
+// Data fetch interval in ms (1 minute)
+const FETCH_INTERVAL = 30000;
+// Health check threshold in ms (2 minutes)
+const HEALTH_CHECK_THRESHOLD = 60000;
+
 // Backoff times for each exchange and account
 const backoffTimes: { [exchange: string]: { [accountId: string]: number } } = {
     binance: {},
@@ -246,7 +251,10 @@ export async function startDataFetcher(): Promise<void> {
         }
         // Log updated metrics
         logAccountMetrics(cachedData);
-    }, 30000); // Fetch and log metrics every 10 seconds
+        console.log(`[${new Date().toISOString()}] Completed scheduled data fetch`);
+    }, FETCH_INTERVAL);
+
+    console.log(`Data fetcher started with ${FETCH_INTERVAL/1000}s interval`);
 }
 
 // Stop the data fetching service
@@ -286,7 +294,7 @@ export function getHealthStatus(): { [key: string]: any } {
         for (const accountId of Object.keys(exchangeClients[exchange])) {
             const lastFetch = lastFetchTimes[exchange][accountId] || 0;
             const timeSinceLastFetch = now - lastFetch;
-            const isHealthy = lastFetch > 0 && timeSinceLastFetch < 300000; // 5 minutes
+            const isHealthy = lastFetch > 0 && timeSinceLastFetch < HEALTH_CHECK_THRESHOLD;
             const inBackoff = backoffTimes[exchange][accountId] > now;
 
             status[exchange][accountId] = {
