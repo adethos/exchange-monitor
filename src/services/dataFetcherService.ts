@@ -48,7 +48,7 @@ const errorCounts: { [exchange: string]: { [accountId: string]: number } } = {
 // Maximum consecutive errors before backing off
 const MAX_CONSECUTIVE_ERRORS = 5;
 // Initial backoff time in ms (1 minute)
-const INITIAL_BACKOFF = 60000;
+const INITIAL_BACKOFF = 10000;
 // Backoff times for each exchange and account
 const backoffTimes: { [exchange: string]: { [accountId: string]: number } } = {
     binance: {},
