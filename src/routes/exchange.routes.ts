@@ -43,61 +43,6 @@ router.get('/search', ((req: Request, res: Response) => {
     res.json(metrics);
 }) as RequestHandler);
 
-router.post('/query', ((req: Request, res: Response) => {
-    const { targets } = req.body;
-    if (!targets || !Array.isArray(targets)) {
-        return res.status(400).json({ error: 'Invalid request format' });
-    }
-
-    const data = getCachedData();
-    const results = targets.map((target: any) => {
-        if (target.target === 'positions') {
-            const exchange = target.exchange || data.currentExchange;
-            const account = target.account || data.currentAccount;
-            const positions = data.exchanges[exchange]?.[account]?.positions || [];
-
-            return {
-                columns: [
-                    { text: 'symbol' },
-                    { text: 'side' },
-                    { text: 'size' },
-                    { text: 'notionalValue' },
-                    { text: 'entryPrice' },
-                    { text: 'markPrice' },
-                    { text: 'liquidationPrice' },
-                    { text: 'liquidationPriceChangePercent' },
-                    { text: 'currentFundingRate' },
-                    { text: 'nextFundingRate' },
-                    { text: 'leverage' },
-                    { text: 'unrealizedPnl' },
-                    { text: 'realizedPnl' },
-                    { text: 'marginMode' }
-                ],
-                rows: positions.map(pos => [
-                    pos.symbol,
-                    pos.side,
-                    pos.size,
-                    pos.notionalValue,
-                    pos.entryPrice,
-                    pos.markPrice,
-                    pos.liquidationPrice,
-                    pos.liquidationPriceChangePercent,
-                    pos.currentFundingRate,
-                    pos.nextFundingRate,
-                    pos.leverage,
-                    pos.unrealizedPnl,
-                    pos.realizedPnl,
-                    pos.marginMode
-                ]),
-                type: 'table'
-            };
-        }
-        return null;
-    }).filter(Boolean);
-
-    res.json(results);
-}) as RequestHandler);
-
 // Get all data
 router.get('/data', ((req: Request, res: Response) => {
     const data = getCachedData();
