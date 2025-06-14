@@ -73,7 +73,7 @@ app.post('/query', (req, res) => {
                     pos.symbol,
                     pos.side,
                     pos.size,
-                    pos.notionalValue,
+                    Math.abs(pos.notionalValue),
                     pos.entryPrice,
                     pos.markPrice,
                     pos.liquidationPrice,
