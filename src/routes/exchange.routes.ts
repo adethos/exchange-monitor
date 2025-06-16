@@ -161,7 +161,33 @@ router.get('/accounts/:exchange', ((req: Request, res: Response) => {
 }) as RequestHandler);
 
 // Get account metrics for current exchange and account
+// router.get('/account-metrics', ((req, res) => {
+//     const data = getCachedData();
+//     const { currentExchange, currentAccount } = data;
+//     const accountData = data.exchanges[currentExchange]?.[currentAccount];
+//     if (!accountData) return res.status(404).json({ error: 'No data' });
+
+//     // Compose metrics object
+//     const metrics = {
+//         baseCurrency: accountData.accountSummary.baseCurrency,
+//         baseBalance: accountData.accountSummary.baseBalance,
+//         totalNotionalValue: accountData.accountSummary.totalNotionalValue,
+//         accountLeverage: accountData.accountSummary.accountLeverage,
+//         openPositions: accountData.accountSummary.openPositionsCount,
+//         openOrders: accountData.accountSummary.openOrdersCount,
+//         marginRatio: accountData.accountSummary.accountMarginRatio,
+//         liquidationBuffer: accountData.accountSummary.liquidationBuffer,
+//     };
+//     res.json(metrics);
+// }) as RequestHandler);
+
+// Get account metrics for current exchange and account
 router.get('/account-metrics', ((req, res) => {
+    // NEW: Check for query params
+    const { exchange, account } = req.query;
+    if (exchange && account) {
+        setCurrentExchangeAndAccount(exchange as string, account as string);
+    }
     const data = getCachedData();
     const { currentExchange, currentAccount } = data;
     const accountData = data.exchanges[currentExchange]?.[currentAccount];
