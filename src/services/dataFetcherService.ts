@@ -1,6 +1,6 @@
 import { BinanceClient, BinanceAccountType } from '../exchanges/binance.client';
 import { BybitClient } from '../exchanges/bybit.client';
-// import { WebSocketService } from './websocketService';
+import { WebSocketService } from './websocketService';
 import { CombinedData, ExchangeData } from '../models/position.model';
 
 // Store exchange clients
@@ -49,10 +49,10 @@ const errorCounts: { [exchange: string]: { [accountId: string]: number } } = {
 const MAX_CONSECUTIVE_ERRORS = 5;
 // Initial backoff time in ms (30 seconds)
 const INITIAL_BACKOFF = 30000;
-// Data fetch interval in ms (30 seconds)
-const FETCH_INTERVAL = 25000;
+// Data fetch interval in ms (40 seconds)
+const FETCH_INTERVAL = 40000;
 // Health check threshold in ms (1 minutes)
-const HEALTH_CHECK_THRESHOLD = 30000;
+const HEALTH_CHECK_THRESHOLD = 60000;
 
 // Backoff times for each exchange and account
 const backoffTimes: { [exchange: string]: { [accountId: string]: number } } = {
@@ -76,7 +76,7 @@ const backoffTimes: { [exchange: string]: { [accountId: string]: number } } = {
 //     const accountId = data.accountType === 'futures' ? 'futures' : 'portfolioMargin';
 //     if (cachedData.exchanges.binance[accountId]) {
 //         // Update order information
-//         const currentData = cachedData.exchanges.binance[accountId];
+        // const currentData = cachedData.exchanges.binance[accountId];
 //         // Update orders based on the received data
 //         lastFetchTimes.binance[accountId] = Date.now();
 //     }

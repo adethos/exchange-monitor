@@ -162,6 +162,7 @@ router.get('/accounts/:exchange', ((req: Request, res: Response) => {
 
 // Get account metrics for current exchange and account
 router.post('/account-metrics', ((req, res) => {
+    res.set('Cache-Control', 'no-store');
     const { targets } = req.body;
     if (!targets || !Array.isArray(targets) || targets.length === 0) {
         return res.status(400).json({ error: 'Invalid request body' });
