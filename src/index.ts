@@ -5,7 +5,6 @@ import { exchangeRoutes } from './routes/exchange.routes';
 import { startDataFetcher, getCachedData } from './services/dataFetcherService';
 
 const app = express();
-// Use PORT from environment variable (Render.com) or fallback to config port (local)
 const PORT = parseInt(process.env.PORT || '', 10) || config.port || 8080;
 
 
@@ -137,7 +136,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     res.status(500).json({ error: 'Internal Server Error' });
 });
 
-// Initialize data fetchers and WebSocket connections
+// Initialize data fetchers
 startDataFetcher().catch(error => {
     console.error('Failed to start data fetcher:', error);
 });

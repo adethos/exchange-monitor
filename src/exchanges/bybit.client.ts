@@ -352,7 +352,7 @@ export class BybitClient {
             const marginRatio = totalEquity > 0 ?
                 Number(((totalMaintenanceMargin / totalEquity) * 100).toFixed(2)) : 0;
 
-            // Calculate liquidation buffer ((equity - maintenance margin) / maintenance margin) * 100
+            // Calculate liquidation buffer
             const liquidationBuffer = totalMaintenanceMargin > 0 ?
                 Number(((totalEquity - totalMaintenanceMargin) / totalMaintenanceMargin * 100).toFixed(2)) : 0;
 
@@ -371,7 +371,7 @@ export class BybitClient {
                 openPositionsCount: positions.length,
                 openOrdersCount: openOrders.length,
                 accountMarginRatio: marginRatio,
-                liquidationBuffer: Math.min(liquidationBuffer, 100) // Cap at 100%
+                liquidationBuffer: Math.min(liquidationBuffer, 100)
             };
 
             const data = {
