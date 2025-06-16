@@ -69,7 +69,6 @@ export class BinanceClient {
             const serverTime = response.data.serverTime;
             const localTime = Date.now();
             this.timeOffset = serverTime - localTime;
-            // console.log(`Time synchronized for ${this.accountType}, offset: ${this.timeOffset}ms`);
         } catch (error) {
             console.error(`Error synchronizing time with Binance for ${this.accountType}:`, error);
             this.timeOffset = 0;
@@ -81,7 +80,6 @@ export class BinanceClient {
     }
 
     private generateSignature(queryString: string): string {
-        // console.log('Generating signature for query:', queryString);
         const signature = crypto
             .createHmac('sha256', this.apiSecret)
             .update(queryString)
@@ -103,8 +101,6 @@ export class BinanceClient {
 
         const signature = this.generateSignature(queryParams);
         const url = `${baseUrlOverride || this.baseUrl}${endpoint}?${queryParams}&signature=${signature}`;
-
-        // console.log(url);
 
         try {
             const response = await axios.get(url, {
@@ -252,43 +248,18 @@ export class BinanceClient {
                     const unrealizedProfit = parseFloat(pos.unRealizedProfit || pos.unrealizedPnl || 0);
                     let liquidationPrice = parseFloat(pos.liquidationPrice || 0);
                     const marginType = pos.marginType || 'cross';
-                    const isCoinM = symbol.includes('_') || symbol.includes('USD_');
-
-                    // // Debug logging for position data
-                    // console.log(`Processing position for ${symbol}:`, {
-                    //     positionAmt,
-                    //     entryPrice,
-                    //     markPrice,
-                    //     leverage,
-                    //     liquidationPrice,
-                    //     isCoinM
-                    // });
+                    const isCoinM = symbol.includes('_') || symbol.includes('USD_');                    
 
                     // Calculate liquidation price if not provided
                     if (liquidationPrice === 0 || liquidationPrice < 0.001) {
                         const maintenanceMarginRatio = 0.013;                        
                         if (isCoinM) {
-                            if (positionAmt < 0) { // Short position
-                                // For shorts in portfolio margin:
-                                // 1. Start with base maintenance margin (3%)
-                                // 2. Add leverage impact (1/leverage)
-                                // 3. Add buffer for portfolio margin (0.5%)
+                            if (positionAmt < 0) { // Short position                                
                                 const totalMarginRatio = maintenanceMarginRatio + (1 / leverage) + 0.005;
                                 liquidationPrice = markPrice * (1 + totalMarginRatio);
                             } else { // Long position
-                                // For longs, use standard calculation
                                 liquidationPrice = markPrice * (1 - maintenanceMarginRatio);
-                            }
-                            
-                            // console.log(`Calculated COIN-M liquidation price for ${symbol}:`, {
-                            //     originalPrice: liquidationPrice,
-                            //     positionAmt,
-                            //     markPrice,
-                            //     maintenanceMarginRatio,
-                            //     leverage,
-                            //     totalMarginRatio: positionAmt < 0 ? maintenanceMarginRatio + (1 / leverage) + 0.005 : maintenanceMarginRatio,
-                            //     isShort: positionAmt < 0
-                            // });
+                            }                            
                         } else {
                             // USDT-M calculation
                             liquidationPrice = positionAmt < 0
@@ -302,15 +273,7 @@ export class BinanceClient {
 
                     if (isCoinM) {
                         const positionSizeUSDT = positionAmt * markPrice;
-                        const notionalValue = Number(positionSizeUSDT.toFixed(2));
-
-                        // // Debug logging for final COIN-M position
-                        // console.log(`Final COIN-M position data for ${symbol}:`, {
-                        //     liquidationPrice,
-                        //     liquidationDistance,
-                        //     notionalValue,
-                        //     positionSizeUSDT
-                        // });
+                        const notionalValue = Number(positionSizeUSDT.toFixed(2));                       
 
                         return {
                             symbol,
@@ -476,8 +439,6 @@ export class BinanceClient {
             } catch (error) {
                 console.warn('Error fetching COIN-M futures balance:', error);
             }
-
-            // console.log('Total USDT Balance calculated:', totalUsdt);
         } catch (error) {
             console.error('Error calculating total USDT balance:', error);
         }
@@ -487,7 +448,6 @@ export class BinanceClient {
 
     private async processAccountSummary(accountInfo: any, positions: Position[], openOrders: any[]): Promise<AccountSummary> {
         console.log('Starting processAccountSummary with account type:', this.accountType);
-        // console.log('Initial accountInfo:', accountInfo);
 
         let baseBalance = 0;
         let totalNotionalValue = 0;
@@ -509,8 +469,6 @@ export class BinanceClient {
 
             // Get total balance including both USDT-M and COIN-M
             baseBalance = await this.calculateTotalUSDTBalance();
-            // console.log('Base balance after calculateTotalUSDTBalance:', baseBalance);
-
 
             marginRatio = Number((totalMaintenanceMargin / totalMarginBalance * 100).toFixed(2));
             let calculatedBuffer = totalMaintenanceMargin > 0 ?
@@ -519,8 +477,6 @@ export class BinanceClient {
         } else {
             console.log('Processing PORTFOLIO MARGIN account');
             try {
-                // console.log('Raw Portfolio Account Info:', JSON.stringify(accountInfo, null, 2));
-
                 // Use the correct fields from the portfolio margin account response
                 const totalBalance = Number(parseFloat(accountInfo.actualEquity || '0').toFixed(2));
                 const maintenanceMargin = Number(parseFloat(accountInfo.accountMaintMargin || '0').toFixed(2));
@@ -535,16 +491,7 @@ export class BinanceClient {
                 // Calculate liquidation buffer
                 let calculatedBuffer = maintenanceMargin > 0 ?
                     Number((((totalBalance - maintenanceMargin) / maintenanceMargin) * 100).toFixed(2)) : 0;
-                liquidationBuffer = Math.min(calculatedBuffer, 100);
-
-                // console.log('Portfolio Margin Balance Details:', {
-                //     accountEquity: totalBalance,
-                //     maintenanceMargin,
-                //     initialMargin,
-                //     currentBaseBalance: baseBalance,
-                //     calculatedMarginRatio: marginRatio,
-                //     calculatedLeverage: accountLeverage
-                // });
+                liquidationBuffer = Math.min(calculatedBuffer, 100);                
 
             } catch (error) {
                 console.error('Error processing portfolio margin metrics:', error);
@@ -565,7 +512,6 @@ export class BinanceClient {
             liquidationBuffer
         };
 
-        // console.log('Final result from processAccountSummary:', result);
         return result;
     }
 }

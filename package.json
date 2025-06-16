@@ -8,7 +8,6 @@
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.0",
-    "@types/websocket": "^1.0.10",
     "@types/ws": "^8.18.1",
     "axios": "^1.9.0",
     "cors": "^2.8.5",
@@ -18,8 +17,7 @@
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
-    "vercel": "^42.3.0",
-    "websocket": "^1.0.35"
+    "vercel": "^42.3.0"
   },  
   "scripts": {
     "build": "tsc",
