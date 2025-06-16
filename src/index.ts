@@ -40,6 +40,7 @@ app.get('/search', (req, res) => {
 });
 
 app.post('/query', (req, res) => {
+    res.set('Cache-Control', 'no-store');
     const { targets } = req.body;
     console.log('query ruequest:', req.body);
 
