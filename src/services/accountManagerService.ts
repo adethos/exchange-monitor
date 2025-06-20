@@ -1,5 +1,5 @@
 import { BinanceClient, BinanceAccountType } from '../exchanges/binance.client';
-// import { BybitClient } from '../exchanges/bybit.client';
+import { BybitClient } from '../exchanges/bybit.client';
 import { AccountConfig, config, getAccountByName } from '../config';
 import { ExchangeData } from '../models/position.model';
 
@@ -67,13 +67,13 @@ export class AccountManager {
                     throw new Error(`Unsupported Binance account type: ${accountType}`);
                 }
                 break;
-            // case 'bybit':
-            //     if (accountType === 'unified') {
-            //         client = new BybitClient(apiKey, apiSecret, baseUrl);
-            //     } else {
-            //         throw new Error(`Unsupported Bybit account type: ${accountType}`);
-            //     }
-            //     break;
+            case 'bybit':
+                if (accountType === 'unified') {
+                    client = new BybitClient(apiKey, apiSecret, baseUrl);
+                } else {
+                    throw new Error(`Unsupported Bybit account type: ${accountType}`);
+                }
+                break;
             default:
                 throw new Error(`Unsupported exchange: ${exchange}`);
         }
