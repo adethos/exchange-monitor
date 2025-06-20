@@ -379,7 +379,8 @@ export class BinanceClient {
     
     private calculateLiquidationDistance(markPrice: number, liquidationPrice: number): number {
         if (liquidationPrice === 0) return 0;
-        return Number(((Math.abs(markPrice - liquidationPrice) / markPrice) * 100).toFixed(2));
+        const distance = Number(((Math.abs(markPrice - liquidationPrice) / markPrice) * 100).toFixed(2));
+        return Math.min(distance, 100); // Cap at 100%
     }    
 
     private async getUSDTPrice(asset: string): Promise<number> {

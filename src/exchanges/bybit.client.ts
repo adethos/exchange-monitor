@@ -128,7 +128,8 @@ export class BybitClient {
 
     private calculateLiquidationDistance(markPrice: number, liquidationPrice: number, side: string): number {
         if (liquidationPrice === 0) return 0;
-        return Number(((side === 'LONG' ? liquidationPrice - markPrice : markPrice - liquidationPrice) / markPrice * 100).toFixed(2));
+        const distance = Number(((side === 'LONG' ? liquidationPrice - markPrice : markPrice - liquidationPrice) / markPrice * 100).toFixed(2));
+        return Math.min(distance, 100); // Cap at 100%
     }
 
     private calculateLiquidationPrice(
