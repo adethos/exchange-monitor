@@ -43,22 +43,22 @@ export const config = {
             apiSecret: process.env.BINANCE_PM2_API_SECRET || 'y4WAEBBA3VMYOa3qeAkNUqOMqUr8MyEnhSfT2ZNhUXaGwkj1TSERlTfuHG96aY4J',
             baseUrl: process.env.BINANCE_PM_BASE_URL || 'https://papi.binance.com'
         },
-        {
-            name: 'BY1',
-            exchange: 'bybit' as const,
-            accountType: 'unified' as const,
-            apiKey: process.env.BYBIT_BY1_API_KEY || 'gkdkqHsxgQ6t1gj5PV',
-            apiSecret: process.env.BYBIT_BY1_API_SECRET || 'jidIU3oOLYZltaga06F6wD20t07h9jwOxjrV',
-            baseUrl: process.env.BYBIT_BASE_URL || 'https://api.bybit.com'
-        },
-        {
-            name: 'BY2',
-            exchange: 'bybit' as const,
-            accountType: 'unified' as const,
-            apiKey: process.env.BYBIT_BY2_API_KEY || 'gkdkqHsxgQ6t1gj5PV',
-            apiSecret: process.env.BYBIT_BY2_API_SECRET || 'jidIU3oOLYZltaga06F6wD20t07h9jwOxjrV',
-            baseUrl: process.env.BYBIT_BASE_URL || 'https://api.bybit.com'
-        }
+        // {
+        //     name: 'BY1',
+        //     exchange: 'bybit' as const,
+        //     accountType: 'unified' as const,
+        //     apiKey: process.env.BYBIT_BY1_API_KEY || 'gkdkqHsxgQ6t1gj5PV',
+        //     apiSecret: process.env.BYBIT_BY1_API_SECRET || 'jidIU3oOLYZltaga06F6wD20t07h9jwOxjrV',
+        //     baseUrl: process.env.BYBIT_BASE_URL || 'https://api.bybit.com'
+        // },
+        // {
+        //     name: 'BY2',
+        //     exchange: 'bybit' as const,
+        //     accountType: 'unified' as const,
+        //     apiKey: process.env.BYBIT_BY2_API_KEY || 'gkdkqHsxgQ6t1gj5PV',
+        //     apiSecret: process.env.BYBIT_BY2_API_SECRET || 'jidIU3oOLYZltaga06F6wD20t07h9jwOxjrV',
+        //     baseUrl: process.env.BYBIT_BASE_URL || 'https://api.bybit.com'
+        // }
     ] as AccountConfig[]
 };
 
