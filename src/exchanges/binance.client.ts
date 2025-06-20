@@ -1,6 +1,5 @@
 import axios from 'axios';
 import crypto from 'crypto';
-import { config } from '../config';
 import { Position, AccountSummary, ExchangeData } from '../models/position.model';
 
 export enum BinanceAccountType {
@@ -17,24 +16,33 @@ export class BinanceClient {
     private timeOffset: number = 0;
     private lastValidData: ExchangeData;
 
-    constructor(accountType: BinanceAccountType) {
+    constructor(accountType: BinanceAccountType, apiKey?: string, apiSecret?: string, baseUrl?: string) {
         this.accountType = accountType;
 
-        if (accountType === BinanceAccountType.FUTURES) {
-            this.apiKey = config.exchanges.binance.futures.apiKey;
-            this.apiSecret = config.exchanges.binance.futures.apiSecret;
-            this.baseUrl = 'https://fapi.binance.com';  // USDT-M Futures
+        // Use provided credentials or fall back to environment variables
+        if (apiKey && apiSecret) {
+            this.apiKey = apiKey;
+            this.apiSecret = apiSecret;
+            this.baseUrl = baseUrl || (accountType === BinanceAccountType.FUTURES ? 'https://fapi.binance.com' : 'https://papi.binance.com');
         } else {
-            this.apiKey = config.exchanges.binance.portfolioMargin.apiKey;
-            this.apiSecret = config.exchanges.binance.portfolioMargin.apiSecret;
-            this.baseUrl = 'https://papi.binance.com';   // Portfolio Margin uses papi
+            // Fallback to environment variables for backward compatibility
+            if (accountType === BinanceAccountType.FUTURES) {
+                this.apiKey = process.env.BINANCE_FUTURES_API_KEY || '';
+                this.apiSecret = process.env.BINANCE_FUTURES_API_SECRET || '';
+                this.baseUrl = 'https://fapi.binance.com';  // USDT-M Futures
+            } else {
+                this.apiKey = process.env.BINANCE_PM_API_KEY || '';
+                this.apiSecret = process.env.BINANCE_PM_API_SECRET || '';
+                this.baseUrl = 'https://papi.binance.com';   // Portfolio Margin uses papi
+            }
         }
 
         this.lastValidData = {
             positions: [],
             accountSummary: {
                 exchange: 'binance',
-                accountId: accountType,
+                accountName: accountType,
+                accountType: accountType,
                 baseCurrency: 'USDT',
                 baseBalance: 0,
                 totalNotionalValue: 0,
@@ -290,7 +298,8 @@ export class BinanceClient {
                             unrealizedPnl: Number(unrealizedProfit.toFixed(2)),
                             realizedPnl: 0,
                             marginMode: marginType.toLowerCase() === 'cross' ? 'CROSS' : 'ISOLATED',
-                            exchange: 'binance'
+                            exchange: 'binance',
+                            accountName: this.accountType
                         };
                     } else {
                         // Handle USDT-M positions
@@ -315,7 +324,8 @@ export class BinanceClient {
                             unrealizedPnl: Number(unrealizedProfit.toFixed(2)),
                             realizedPnl: 0,
                             marginMode: marginType.toLowerCase() === 'cross' ? 'CROSS' : 'ISOLATED',
-                            exchange: 'binance'
+                            exchange: 'binance',
+                            accountName: this.accountType
                         };
                     }
                 });
@@ -353,7 +363,8 @@ export class BinanceClient {
                             unrealizedPnl,
                             realizedPnl: 0,
                             marginMode: pos.marginType.toLowerCase() === 'cross' ? 'CROSS' : 'ISOLATED',
-                            exchange: 'binance'
+                            exchange: 'binance',
+                            accountName: this.accountType
                         };
                     });
 
@@ -501,7 +512,8 @@ export class BinanceClient {
 
         const result = {
             exchange: 'binance',
-            accountId: this.accountType,
+            accountName: this.accountType,
+            accountType: this.accountType,
             baseCurrency: 'USDT',
             baseBalance,
             totalNotionalValue,

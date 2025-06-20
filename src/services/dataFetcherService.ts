@@ -1,208 +1,126 @@
-import { BinanceClient, BinanceAccountType } from '../exchanges/binance.client';
-import { BybitClient } from '../exchanges/bybit.client';
+import { AccountManager } from './accountManagerService';
 import { CombinedData, ExchangeData } from '../models/position.model';
-
-// Store exchange clients
-const exchangeClients: { [key: string]: { [accountId: string]: BinanceClient | BybitClient } } = {
-    binance: {},
-    bybit: {}
-};
 
 // In-memory cache
 let cachedData: CombinedData = {
-    exchanges: {
-        binance: {},
-        bybit: {},
-    },
-    currentExchange: 'binance',
-    currentAccount: 'futures',
-    availableExchanges: ['binance', 'bybit'],
-
-    availableAccounts: {
-        binance: ['futures', 'portfolioMargin'],
-        bybit: ['unified'],
-    },
+    accounts: {},
+    currentAccount: '',
+    availableAccounts: [],
+    accountConfigs: {}
 };
 
-// Last successful fetch timestamps
-const lastFetchTimes: { [exchange: string]: { [accountId: string]: number } } = {
-    binance: {},
-    bybit: {},
-};
-
-// Error counters
-const errorCounts: { [exchange: string]: { [accountId: string]: number } } = {
-    binance: {},
-    bybit: {},
-};
-
-// Maximum consecutive errors before backing off
-const MAX_CONSECUTIVE_ERRORS = 5;
-// Initial backoff time in ms (30 seconds)
-const INITIAL_BACKOFF = 30000;
 // Data fetch interval in ms (40 seconds)
 const FETCH_INTERVAL = 40000;
-// Health check threshold in ms (1 minutes)
-const HEALTH_CHECK_THRESHOLD = 60000;
 
-// Backoff times for each exchange and account
-const backoffTimes: { [exchange: string]: { [accountId: string]: number } } = {
-    binance: {},
-    bybit: {},
-};
-
-// Initialize exchange clients
-export async function initializeExchangeClients(): Promise<void> {
-    try {
-        // Initialize Binance Futures client
-        const binanceFuturesClient = new BinanceClient(BinanceAccountType.FUTURES);
-        await binanceFuturesClient.initialize();
-        exchangeClients.binance['futures'] = binanceFuturesClient;
-
-        // Initialize Binance Portfolio Margin client
-        const binancePMClient = new BinanceClient(BinanceAccountType.PORTFOLIO_MARGIN);
-        await binancePMClient.initialize();
-        exchangeClients.binance['portfolioMargin'] = binancePMClient;
-
-        // Initialize Bybit Unified client
-        const bybitClient = new BybitClient();
-        await bybitClient.initialize();
-        exchangeClients.bybit['unified'] = bybitClient;
-
-        console.log('All exchange clients initialized successfully');
-    } catch (error) {
-        console.error('Error initializing exchange clients:', error);
-        throw error;
-    }
-}
+// Get the account manager instance
+const accountManager = AccountManager.getInstance();
 
 function logAccountMetrics(data: CombinedData) {
     console.log('\n========== ACCOUNT METRICS ==========');
 
-    // Log metrics for each exchange and account
-    for (const exchange of Object.keys(data.exchanges)) {
-        console.log(`\n=== ${exchange.toUpperCase()} ===`);
+    // Log metrics for each account
+    for (const accountName of Object.keys(data.accounts)) {
+        const accountData = data.accounts[accountName];
+        if (!accountData) continue;
 
-        for (const accountId of Object.keys(data.exchanges[exchange])) {
-            const accountData = data.exchanges[exchange][accountId];
-            if (!accountData) continue;
+        const config = accountManager.getAccountConfig(accountName);
+        console.log(`\n--- ${accountName} (${config?.exchange} ${config?.accountType}) ---`);
 
-            console.log(`\n--- ${accountId} Account ---`);
+        // Log Account Summary
+        const summary = accountData.accountSummary;
+        console.log('\nAccount Summary:');
+        console.log(`• Base Currency: ${summary.baseCurrency}`);
+        console.log(`• Base Balance: ${Number(summary.baseBalance).toFixed(2)} ${summary.baseCurrency}`);
+        console.log(`• Total Notional Value: ${Number(summary.totalNotionalValue).toFixed(2)} ${summary.baseCurrency}`);
+        console.log(`• Account Leverage: ${Number(summary.accountLeverage).toFixed(2)}x`);
+        console.log(`• Open Positions: ${summary.openPositionsCount}`);
+        console.log(`• Open Orders: ${summary.openOrdersCount}`);
+        console.log(`• Margin Ratio: ${Number(summary.accountMarginRatio).toFixed(2)}%`);
+        console.log(`• Liquidation Buffer: ${Number(summary.liquidationBuffer).toFixed(2)}%`);
 
-            // Log Account Summary
-            const summary = accountData.accountSummary;
-            console.log('\nAccount Summary:');
-            console.log(`• Base Currency: ${summary.baseCurrency}`);
-            console.log(`• Base Balance: ${Number(summary.baseBalance).toFixed(2)} ${summary.baseCurrency}`);
-            console.log(`• Total Notional Value: ${Number(summary.totalNotionalValue).toFixed(2)} ${summary.baseCurrency}`);
-            console.log(`• Account Leverage: ${Number(summary.accountLeverage).toFixed(2)}x`);
-            console.log(`• Open Positions: ${summary.openPositionsCount}`);
-            console.log(`• Open Orders: ${summary.openOrdersCount}`);
-            console.log(`• Margin Ratio: ${Number(summary.accountMarginRatio).toFixed(2)}%`);
-            console.log(`• Liquidation Buffer: ${Number(summary.liquidationBuffer).toFixed(2)}%`);
-
-            // Log Positions
-            if (accountData.positions.length > 0) {
-                console.log('\nOpen Positions:');
-                accountData.positions.forEach((pos, index) => {
-                    console.log(`\nPosition ${index + 1}:`);
-                    console.log(`• Symbol: ${pos.symbol}`);
-                    console.log(`• Side: ${pos.side}`);
-                    console.log(`• Size: ${Number(pos.size).toFixed(2)}`);
-                    console.log(`• Notional Value: ${Number(pos.notionalValue).toFixed(2)} ${summary.baseCurrency}`);
-                    console.log(`• Entry Price: ${Number(pos.entryPrice).toFixed(2)}`);
-                    console.log(`• Mark Price: ${Number(pos.markPrice).toFixed(2)}`);
-                    console.log(`• Liquidation Price: ${Number(pos.liquidationPrice).toFixed(2)}`);
-                    console.log(`• Liquidation change Percent: ${Number(pos.liquidationPriceChangePercent).toFixed(2)}%`);
-                    console.log(`• Current Funding Rate: ${Number(pos.currentFundingRate).toFixed(2)}%`);
-                    console.log(`• Next Funding Rate: ${Number(pos.nextFundingRate).toFixed(2)}%`);
-                    console.log(`• Leverage: ${Number(pos.leverage).toFixed(2)}x`);
-                    console.log(`• Unrealized PnL: ${Number(pos.unrealizedPnl).toFixed(2)} ${summary.baseCurrency}`);
-                    console.log(`• Realized PnL: ${Number(pos.realizedPnl).toFixed(2)} ${summary.baseCurrency}`);
-                    console.log(`• Margin Mode: ${pos.marginMode}`);
-                });
-            } else {
-                console.log('\nNo open positions');
-            }
+        // Log Positions
+        if (accountData.positions.length > 0) {
+            console.log('\nOpen Positions:');
+            accountData.positions.forEach((pos, index) => {
+                console.log(`\nPosition ${index + 1}:`);
+                console.log(`• Symbol: ${pos.symbol}`);
+                console.log(`• Side: ${pos.side}`);
+                console.log(`• Size: ${Number(pos.size).toFixed(2)}`);
+                console.log(`• Notional Value: ${Number(pos.notionalValue).toFixed(2)} ${summary.baseCurrency}`);
+                console.log(`• Entry Price: ${Number(pos.entryPrice).toFixed(2)}`);
+                console.log(`• Mark Price: ${Number(pos.markPrice).toFixed(2)}`);
+                console.log(`• Liquidation Price: ${Number(pos.liquidationPrice).toFixed(2)}`);
+                console.log(`• Liquidation change Percent: ${Number(pos.liquidationPriceChangePercent).toFixed(2)}%`);
+                console.log(`• Current Funding Rate: ${Number(pos.currentFundingRate).toFixed(2)}%`);
+                console.log(`• Next Funding Rate: ${Number(pos.nextFundingRate).toFixed(2)}%`);
+                console.log(`• Leverage: ${Number(pos.leverage).toFixed(2)}x`);
+                console.log(`• Unrealized PnL: ${Number(pos.unrealizedPnl).toFixed(2)} ${summary.baseCurrency}`);
+                console.log(`• Realized PnL: ${Number(pos.realizedPnl).toFixed(2)} ${summary.baseCurrency}`);
+                console.log(`• Margin Mode: ${pos.marginMode}`);
+            });
+        } else {
+            console.log('\nNo open positions');
         }
     }
     console.log('\n=====================================');
 }
 
-// Fetch data for a specific exchange and account
-async function fetchExchangeData(exchange: string, accountId: string): Promise<void> {
-    const client = exchangeClients[exchange][accountId];
-    if (!client) {
-        console.error(`No client found for ${exchange}/${accountId}`);
-        return;
-    }
-
-    // Check if we're in backoff mode
-    if (backoffTimes[exchange][accountId] > Date.now()) {
-        console.log(`Skipping ${exchange}/${accountId} fetch due to backoff. Next attempt in ${Math.round((backoffTimes[exchange][accountId] - Date.now()) / 1000)}s`);
-        return;
-    }
-
-    try {
-        console.log(`\nFetching data from ${exchange} for account ${accountId}...`);
-        const data = await client.getExchangeData();
-
-        // Update cache
-        cachedData.exchanges[exchange][accountId] = data;
-        lastFetchTimes[exchange][accountId] = Date.now();
-
-        // Reset error count on success
-        errorCounts[exchange][accountId] = 0;
-        backoffTimes[exchange][accountId] = 0;
-    } catch (error) {
-        console.error(`Error fetching ${exchange} data for account ${accountId}: ${error}`);
-
-        // Initialize error tracking if needed
-        if (!errorCounts[exchange][accountId]) {
-            errorCounts[exchange][accountId] = 0;
-        }
-
-        // Increment error count
-        errorCounts[exchange][accountId]++;
-
-        // If we've had too many consecutive errors, back off
-        if (errorCounts[exchange][accountId] >= MAX_CONSECUTIVE_ERRORS) {
-            const backoffTime = INITIAL_BACKOFF * Math.pow(2, Math.min(errorCounts[exchange][accountId] - MAX_CONSECUTIVE_ERRORS, 5));
-            backoffTimes[exchange][accountId] = Date.now() + backoffTime;
-            console.log(`Too many consecutive ${exchange} errors for account ${accountId}. Backing off for ${backoffTime / 1000}s`);
+// Fetch data for all accounts
+async function fetchAllAccountsData(): Promise<void> {
+    const availableAccounts = accountManager.getAvailableAccounts();
+    
+    for (const accountName of availableAccounts) {
+        try {
+            const data = await accountManager.fetchAccountData(accountName);
+            if (data) {
+                // Update cache
+                cachedData.accounts[accountName] = data;
+                
+                // Update account configs
+                const config = accountManager.getAccountConfig(accountName);
+                if (config) {
+                    cachedData.accountConfigs[accountName] = config;
+                }
+            }
+        } catch (error) {
+            console.error(`Error fetching data for account ${accountName}:`, error);
         }
     }
 }
 
 // Start the data fetching service
 export async function startDataFetcher(): Promise<void> {
-    // Initialize all exchange clients
-    await initializeExchangeClients();
+    try {
+        // Initialize all accounts from config
+        await accountManager.initializeAllAccounts();
 
-    // Initial data fetch
-    for (const exchange of Object.keys(exchangeClients)) {
-        for (const accountId of Object.keys(exchangeClients[exchange])) {
-            await fetchExchangeData(exchange, accountId);
+        // Update cached data structure
+        cachedData.availableAccounts = accountManager.getAvailableAccounts();
+        cachedData.accountConfigs = accountManager.getAllAccountConfigs();
+        
+        if (cachedData.availableAccounts.length > 0) {
+            cachedData.currentAccount = cachedData.availableAccounts[0];
         }
-    }
 
-    // Log initial metrics
-    logAccountMetrics(cachedData);   
+        // Initial data fetch
+        await fetchAllAccountsData();
 
-    // Set up periodic metrics logging
-    setInterval(async () => {
-        // Fetch new data for all exchanges and accounts
-        for (const exchange of Object.keys(exchangeClients)) {
-            for (const accountId of Object.keys(exchangeClients[exchange])) {
-                await fetchExchangeData(exchange, accountId);
-            }
-        }
-        // Log updated metrics
+        // Log initial metrics
         logAccountMetrics(cachedData);
-        console.log(`[${new Date().toISOString()}] Completed scheduled data fetch`);
-    }, FETCH_INTERVAL);
 
-    console.log(`Data fetcher started with ${FETCH_INTERVAL/1000}s interval`);
+        // Set up periodic data fetching
+        setInterval(async () => {
+            await fetchAllAccountsData();
+            logAccountMetrics(cachedData);
+            console.log(`[${new Date().toISOString()}] Completed scheduled data fetch`);
+        }, FETCH_INTERVAL);
+
+        console.log(`Data fetcher started with ${FETCH_INTERVAL/1000}s interval`);
+        console.log(`Monitoring ${cachedData.availableAccounts.length} accounts: ${cachedData.availableAccounts.join(', ')}`);
+    } catch (error) {
+        console.error('Failed to start data fetcher:', error);
+        throw error;
+    }
 }
 
 // Get the current cached data
@@ -216,40 +134,21 @@ export function getCachedData(): CombinedData {
     return data;
 }
 
-// Set current exchange and account
-export function setCurrentExchangeAndAccount(exchange: string, account: string): void {
-    if (cachedData.availableExchanges.includes(exchange) &&
-        cachedData.availableAccounts[exchange].includes(account)) {
-        cachedData.currentExchange = exchange;
-        cachedData.currentAccount = account;
+// Set current account
+export function setCurrentAccount(accountName: string): void {
+    if (cachedData.availableAccounts.includes(accountName)) {
+        cachedData.currentAccount = accountName;
     } else {
-        throw new Error(`Invalid exchange or account: ${exchange}/${account}`);
+        throw new Error(`Invalid account: ${accountName}`);
     }
 }
 
 // Get health status
 export function getHealthStatus(): { [key: string]: any } {
-    const now = Date.now();
-    const status: { [key: string]: any } = {};
+    return accountManager.getHealthStatus();
+}
 
-    for (const exchange of Object.keys(exchangeClients)) {
-        status[exchange] = {};
-        for (const accountId of Object.keys(exchangeClients[exchange])) {
-            const lastFetch = lastFetchTimes[exchange][accountId] || 0;
-            const timeSinceLastFetch = now - lastFetch;
-            const isHealthy = lastFetch > 0 && timeSinceLastFetch < HEALTH_CHECK_THRESHOLD;
-            const inBackoff = backoffTimes[exchange][accountId] > now;
-
-            status[exchange][accountId] = {
-                healthy: isHealthy,
-                lastFetch: lastFetch ? new Date(lastFetch).toISOString() : null,
-                timeSinceLastFetch: lastFetch ? Math.round(timeSinceLastFetch / 1000) : null,
-                inBackoff,
-                backoffEnds: inBackoff ? new Date(backoffTimes[exchange][accountId]).toISOString() : null,
-                errorCount: errorCounts[exchange][accountId] || 0
-            };
-        }
-    }
-
-    return status;
+// Get account manager instance (for external use)
+export function getAccountManager(): AccountManager {
+    return accountManager;
 }

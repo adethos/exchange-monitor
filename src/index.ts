@@ -8,9 +8,8 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '', 10) || config.port || 8080;
 
 
-// Middleware
 app.use(cors({
-    origin: '*', // Allow all origins
+    origin: '*',
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -41,17 +40,15 @@ app.get('/search', (req, res) => {
 app.post('/query', (req, res) => {
     res.set('Cache-Control', 'no-store');
     const { targets } = req.body;
-    console.log('query ruequest:', req.body);
+    console.log('query request:', req.body);
 
     const data = getCachedData();
 
     const results = targets.map((target: any) => {
         if (target.target === 'positions') {
-            const exchange = target.exchange;
-            const account = target.account;
-            const positions = data.exchanges[exchange]?.[account]?.positions || [];
+            const accountName = target.account;
+            const positions = data.accounts[accountName]?.positions || [];
 
-            // Format for Grafana Table panel
             return {
                 columns: [
                     { text: 'symbol' },
@@ -92,7 +89,6 @@ app.post('/query', (req, res) => {
 
     res.json(results);
     console.log("result:", JSON.stringify(results, null, 2));
-
 });
 
 app.post('/annotations', (req, res) => {
@@ -100,28 +96,26 @@ app.post('/annotations', (req, res) => {
 });
 
 app.post('/variable', ((req, res) => {
-
     console.log('Received /variable request:', JSON.stringify(req.body, null, 2));
 
     const { target } = req.body.payload || {};
     const data = getCachedData();
 
     if (target === '/api/available') {
-        // Return a flat array of exchange names
-        return res.json(data.availableExchanges || []);
+        // Return a flat array of account names
+        return res.json(data.availableAccounts || []);
     }
 
-    // Correct: Use RegExp to match /api/accounts/{exchange}
-    const accountsMatch = target && target.match(/^\/api\/accounts\/([^/]+)$/);
-    if (accountsMatch) {
-        const exchange = accountsMatch[1];
-        if (!data.availableAccounts[exchange]) {
-            return res.status(404).json({ error: 'Exchange not found' });
+    // Handle account-specific queries
+    const accountMatch = target && target.match(/^\/api\/account\/([^/]+)$/);
+    if (accountMatch) {
+        const accountName = accountMatch[1];
+        if (!data.accounts[accountName]) {
+            return res.status(404).json({ error: 'Account not found' });
         }
-        return res.json(data.availableAccounts[exchange]);
+        return res.json([accountName]);
     }
 
-    // You can add more cases for other variable queries here
     res.status(400).json({ error: 'Unknown variable target' });
 }) as RequestHandler);
 
