@@ -188,14 +188,14 @@ router.post('/account-metrics', ((req, res) => {
     }
     
     const target = targets[0];
-    const { accountName } = target;
+    const { account } = target;
     
-    if (!accountName) {
+    if (!account) {
         return res.status(400).json({ error: 'Account name is required' });
     }
     
     const data = getCachedData();
-    const accountData = data.accounts[accountName];
+    const accountData = data.accounts[account];
     
     if (!accountData) {
         return res.status(404).json({ error: 'Account not found' });
