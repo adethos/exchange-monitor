@@ -1,9 +1,7 @@
 import express, { Request, Response, RequestHandler } from 'express';
 import path from 'path';
-import { getCachedData, setCurrentExchangeAndAccount, getHealthStatus } from '../services/dataFetcherService';
-import { BinanceClient } from '../exchanges/binance.client';
-import { BybitClient } from '../exchanges/bybit.client';
-import { BinanceAccountType } from '../exchanges/binance.client';
+import { getCachedData, setCurrentAccount, getHealthStatus, getAccountManager } from '../services/dataFetcherService';
+import { AccountConfig, getAccountsByExchange } from '../config';
 
 const router = express.Router();
 
@@ -24,7 +22,10 @@ router.get('/', ((req: Request, res: Response) => {
             search: '/search',
             query: '/query',
             annotations: '/annotations',
-            health: '/health'
+            health: '/health',
+            accounts: '/accounts',
+            positions: '/positions/:accountName',
+            accountSummary: '/account-summary/:accountName'
         }
     });
 }) as RequestHandler);
@@ -37,7 +38,7 @@ router.get('/search', ((req: Request, res: Response) => {
     const metrics = [
         'positions',
         'account_summary',
-        'available_exchanges',
+        'available_accounts',
         'health_status'
     ];
     res.json(metrics);
@@ -49,61 +50,57 @@ router.get('/data', ((req: Request, res: Response) => {
     res.json(data);
 }) as RequestHandler);
 
-// Get positions for current exchange and account
-router.get('/positions', ((req: Request, res: Response) => {
+// Get positions for a specific account
+router.get('/positions/:accountName', ((req: Request, res: Response) => {
+    const { accountName } = req.params;
     const data = getCachedData();
-    const { currentExchange, currentAccount } = data;
 
-    if (!currentExchange || !currentAccount) {
-        return res.status(404).json({ error: 'No exchange or account selected' });
+    if (!data.accounts[accountName]) {
+        return res.status(404).json({ error: 'Account not found' });
     }
 
-    const exchangeData = data.exchanges[currentExchange]?.[currentAccount];
-    if (!exchangeData) {
-        return res.status(404).json({ error: 'No data available for selected exchange and account' });
-    }
-
-    res.json(exchangeData.positions);
+    res.json(data.accounts[accountName].positions);
 }) as RequestHandler);
 
-// Get account summary for current exchange and account
-router.get('/account-summary', ((req: Request, res: Response) => {
+// Get account summary for a specific account
+router.get('/account-summary/:accountName', ((req: Request, res: Response) => {
+    const { accountName } = req.params;
     const data = getCachedData();
-    const { currentExchange, currentAccount } = data;
 
-    if (!currentExchange || !currentAccount) {
-        return res.status(404).json({ error: 'No exchange or account selected' });
+    if (!data.accounts[accountName]) {
+        return res.status(404).json({ error: 'Account not found' });
     }
 
-    const exchangeData = data.exchanges[currentExchange]?.[currentAccount];
-    if (!exchangeData) {
-        return res.status(404).json({ error: 'No data available for selected exchange and account' });
-    }
-
-    res.json(exchangeData.accountSummary);
+    res.json(data.accounts[accountName].accountSummary);
 }) as RequestHandler);
 
-// Get available exchanges and accounts
+// Get available exchanges
 router.get('/available', ((req: Request, res: Response) => {
-    const data = getCachedData();
+    const accountManager = getAccountManager();
+    const accounts = accountManager.getAllAccountConfigs();
+    
+    // Extract unique exchanges from account configurations
+    const exchanges = [...new Set(Object.values(accounts).map(account => account.exchange))];
+    
     res.json({
-        exchanges: data.availableExchanges,
-        accounts: data.availableAccounts,
-        currentExchange: data.currentExchange,
-        currentAccount: data.currentAccount,
+        exchanges: exchanges
     });
 }) as RequestHandler);
 
-// Set current exchange and account
+// Set current account
 router.post('/set-current', ((req: Request, res: Response) => {
-    const { exchange, account } = req.body;
+    const { accountName } = req.body;
 
-    if (!exchange || !account) {
-        return res.status(400).json({ error: 'Exchange and account are required' });
+    if (!accountName) {
+        return res.status(400).json({ error: 'Account name is required' });
     }
 
-    setCurrentExchangeAndAccount(exchange, account);
-    res.json({ success: true, exchange, account });
+    try {
+        setCurrentAccount(accountName);
+        res.json({ success: true, accountName });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
 }) as RequestHandler);
 
 // Get health status
@@ -112,71 +109,97 @@ router.get('/health', ((req: Request, res: Response) => {
     res.json(status);
 }) as RequestHandler);
 
-// Add API key for an exchange
-router.post('/add-api-key', ((req: Request, res: Response) => {
-    const { exchange, apiKey, apiSecret, accountName } = req.body;
-
-    if (!exchange || !apiKey || !apiSecret || !accountName) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    if (exchange === 'binance') {
-        const accountType = accountName === 'portfolioMargin' ?
-            BinanceAccountType.PORTFOLIO_MARGIN : BinanceAccountType.FUTURES;
-        const binanceClient = new BinanceClient(accountType);
-        binanceClient.initialize()
-            .then(() => {
-                res.json({ success: true, message: 'API key added successfully' });
-            })
-            .catch(error => {
-                res.status(500).json({ error: `Failed to initialize Binance client: ${error.message}` });
-            });
-    } else if (exchange === 'bybit') {
-        const bybitClient = new BybitClient();
-        bybitClient.initialize()
-            .then(() => {
-                res.json({ success: true, message: 'API key added successfully' });
-            })
-            .catch(error => {
-                res.status(500).json({ error: `Failed to initialize Bybit client: ${error.message}` });
-            });
-    } else {
-        res.status(400).json({ error: 'Unsupported exchange' });
-    }
-}) as RequestHandler);
-
-// Get available accounts for an exchange
+// Get accounts for a specific exchange
 router.get('/accounts/:exchange', ((req: Request, res: Response) => {
     const { exchange } = req.params;
-    const data = getCachedData();
-
-    if (!data.availableAccounts[exchange]) {
+    const accounts = getAccountsByExchange(exchange);
+    
+    if (accounts.length === 0) {
         return res.status(404).json({ error: 'Exchange not found' });
     }
-
+    
+    // Return account names for the specified exchange in JSON object format
+    const accountNames = accounts.map(account => account.name);
     res.json({
-        accounts: data.availableAccounts[exchange],
-        currentAccount: data.currentAccount
+        accounts: accountNames
     });
 }) as RequestHandler);
 
-// Get account metrics for current exchange and account
+// Get all accounts with their configurations
+router.get('/accounts', ((req: Request, res: Response) => {
+    const accountManager = getAccountManager();
+    const accounts = accountManager.getAllAccountConfigs();
+    res.json(accounts);
+}) as RequestHandler);
+
+// Get account configuration by name
+router.get('/accounts/:accountName', ((req: Request, res: Response) => {
+    const { accountName } = req.params;
+    const accountManager = getAccountManager();
+    const config = accountManager.getAccountConfig(accountName);
+
+    if (!config) {
+        return res.status(404).json({ error: 'Account not found' });
+    }
+
+    res.json(config);
+}) as RequestHandler);
+
+// Add new account (for dynamic account addition)
+router.post('/accounts', ((req: Request, res: Response) => {
+    const { name, exchange, accountType, apiKey, apiSecret, baseUrl } = req.body;
+
+    if (!name || !exchange || !accountType || !apiKey || !apiSecret) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const accountManager = getAccountManager();
+    
+    // Check if account already exists
+    if (accountManager.getAccountConfig(name)) {
+        return res.status(400).json({ error: 'Account with this name already exists' });
+    }
+
+    const accountConfig: AccountConfig = {
+        name,
+        exchange,
+        accountType,
+        apiKey,
+        apiSecret,
+        baseUrl
+    };
+
+    // Initialize the new account
+    accountManager.initializeAccount(accountConfig)
+        .then(() => {
+            res.json({ success: true, message: 'Account added successfully', accountName: name });
+        })
+        .catch(error => {
+            res.status(500).json({ error: `Failed to initialize account: ${error.message}` });
+        });
+}) as RequestHandler);
+
+// Get account metrics for a specific account
 router.post('/account-metrics', ((req, res) => {
     res.set('Cache-Control', 'no-store');
     const { targets } = req.body;
     if (!targets || !Array.isArray(targets) || targets.length === 0) {
         return res.status(400).json({ error: 'Invalid request body' });
     }
+    
     const target = targets[0];
-    const { exchange, account } = target;
-    if (!exchange || !account) {
-        return res.status(400).json({ error: 'Exchange and account are required' });
+    const { accountName } = target;
+    
+    if (!accountName) {
+        return res.status(400).json({ error: 'Account name is required' });
     }
-    setCurrentExchangeAndAccount(exchange, account);
+    
     const data = getCachedData();
-    const { currentExchange, currentAccount } = data;
-    const accountData = data.exchanges[currentExchange]?.[currentAccount];
-    if (!accountData) return res.status(404).json({ error: 'No data' });
+    const accountData = data.accounts[accountName];
+    
+    if (!accountData) {
+        return res.status(404).json({ error: 'Account not found' });
+    }
 
     // Compose metrics object
     const metrics = {
@@ -189,6 +212,7 @@ router.post('/account-metrics', ((req, res) => {
         marginRatio: accountData.accountSummary.accountMarginRatio,
         liquidationBuffer: accountData.accountSummary.liquidationBuffer,
     };
+    
     res.json(metrics);
 }) as RequestHandler);
 

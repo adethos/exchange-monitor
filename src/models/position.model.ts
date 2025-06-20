@@ -14,11 +14,13 @@ export interface Position {
     realizedPnl: number;
     marginMode: 'CROSS' | 'ISOLATED';
     exchange: string;
+    accountName: string;
 }
 
 export interface AccountSummary {
     exchange: string;
-    accountId: string;
+    accountName: string;
+    accountType: string;
     baseCurrency: string;
     baseBalance: number;
     totalNotionalValue: number;
@@ -35,13 +37,10 @@ export interface ExchangeData {
 }
 
 export interface CombinedData {
-    exchanges: {
-        [exchangeName: string]: {
-            [accountId: string]: ExchangeData;
-        };
+    accounts: {
+        [accountName: string]: ExchangeData;
     };
-    currentExchange: string;
     currentAccount: string;
-    availableExchanges: string[];
-    availableAccounts: { [exchange: string]: string[] };
+    availableAccounts: string[];
+    accountConfigs: { [accountName: string]: any };
 }

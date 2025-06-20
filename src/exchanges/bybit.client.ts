@@ -1,6 +1,5 @@
 import axios from 'axios';
 import crypto from 'crypto';
-import { config } from '../config';
 import { Position, AccountSummary, ExchangeData } from '../models/position.model';
 
 export class BybitClient {
@@ -10,15 +9,25 @@ export class BybitClient {
     private recvWindow: number = 60000;
     private lastValidData: ExchangeData;
 
-    constructor() {
-        this.apiKey = config.exchanges.bybit.apiKey;
-        this.apiSecret = config.exchanges.bybit.apiSecret;
-        this.baseUrl = config.exchanges.bybit.baseUrl;
+    constructor(apiKey?: string, apiSecret?: string, baseUrl?: string) {
+        // Use provided credentials or fall back to environment variables
+        if (apiKey && apiSecret) {
+            this.apiKey = apiKey;
+            this.apiSecret = apiSecret;
+            this.baseUrl = baseUrl || 'https://api.bybit.com';
+        } else {
+            // Fallback to environment variables for backward compatibility
+            this.apiKey = process.env.BYBIT_API_KEY || '';
+            this.apiSecret = process.env.BYBIT_API_SECRET || '';
+            this.baseUrl = process.env.BYBIT_BASE_URL || 'https://api.bybit.com';
+        }
+        
         this.lastValidData = {
             positions: [],
             accountSummary: {
                 exchange: 'bybit',
-                accountId: 'unified',
+                accountName: 'unified',
+                accountType: 'unified',
                 baseCurrency: 'USDT',
                 baseBalance: 0,
                 totalNotionalValue: 0,
@@ -193,7 +202,8 @@ export class BybitClient {
             unrealizedPnl,
             realizedPnl,
             marginMode,
-            exchange: 'bybit'
+            exchange: 'bybit',
+            accountName: 'unified'
         };
     }
 
@@ -363,7 +373,8 @@ export class BybitClient {
 
             const accountSummary = {
                 exchange: 'bybit',
-                accountId: 'unified',
+                accountName: 'unified',
+                accountType: 'unified',
                 baseCurrency: 'USDT',
                 baseBalance,
                 totalNotionalValue,
