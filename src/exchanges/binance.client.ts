@@ -256,18 +256,18 @@ export class BinanceClient {
                     const unrealizedProfit = parseFloat(pos.unRealizedProfit || pos.unrealizedPnl || 0);
                     let liquidationPrice = parseFloat(pos.liquidationPrice || 0);
                     const marginType = pos.marginType || 'cross';
-                    const isCoinM = symbol.includes('_') || symbol.includes('USD_');                    
+                    const isCoinM = symbol.includes('_') || symbol.includes('USD_');
 
                     // Calculate liquidation price if not provided
                     if (liquidationPrice === 0 || liquidationPrice < 0.001) {
-                        const maintenanceMarginRatio = 0.013;                        
+                        const maintenanceMarginRatio = 0.013;
                         if (isCoinM) {
                             if (positionAmt < 0) { // Short position                                
                                 const totalMarginRatio = maintenanceMarginRatio + (1 / leverage) + 0.005;
                                 liquidationPrice = markPrice * (1 + totalMarginRatio);
                             } else { // Long position
                                 liquidationPrice = markPrice * (1 - maintenanceMarginRatio);
-                            }                            
+                            }
                         } else {
                             // USDT-M calculation
                             liquidationPrice = positionAmt < 0
@@ -281,7 +281,7 @@ export class BinanceClient {
 
                     if (isCoinM) {
                         const positionSizeUSDT = positionAmt * markPrice;
-                        const notionalValue = Number(positionSizeUSDT.toFixed(2));                       
+                        const notionalValue = Number(positionSizeUSDT.toFixed(2));
 
                         return {
                             symbol,
@@ -376,12 +376,12 @@ export class BinanceClient {
             return [];
         }
     }
-    
+
     private calculateLiquidationDistance(markPrice: number, liquidationPrice: number): number {
         if (liquidationPrice === 0) return 0;
         const distance = Number(((Math.abs(markPrice - liquidationPrice) / markPrice) * 100).toFixed(2));
         return Math.min(distance, 100); // Cap at 100%
-    }    
+    }
 
     private async getUSDTPrice(asset: string): Promise<number> {
         if (asset === 'USDT') return 1;
@@ -392,7 +392,7 @@ export class BinanceClient {
             try {
                 const price = await this.getAssetPrice(usdtPair);
                 if (price > 0) return price;
-            } catch (e) {   
+            } catch (e) {
                 // If direct USDT pair fails, continue to try BTC pair
             }
 
@@ -467,12 +467,8 @@ export class BinanceClient {
         let marginRatio = 0;
         let liquidationBuffer = 0;
 
-        // Calculate total notional value and average leverage from all positions
+        // Calculate total notional value from all positions
         totalNotionalValue = positions.reduce((sum, position) => sum + position.notionalValue, 0);
-
-        // Calculate average leverage from all positions
-        const totalLeverage = positions.reduce((sum, position) => sum + position.leverage, 0);
-        accountLeverage = positions.length > 0 ? Number((totalLeverage / positions.length).toFixed(2)) : 0;
 
         if (this.accountType === BinanceAccountType.FUTURES) {
             console.log('Processing FUTURES account');
@@ -503,13 +499,16 @@ export class BinanceClient {
                 // Calculate liquidation buffer
                 let calculatedBuffer = maintenanceMargin > 0 ?
                     Number((((totalBalance - maintenanceMargin) / maintenanceMargin) * 100).toFixed(2)) : 0;
-                liquidationBuffer = Math.min(calculatedBuffer, 100);                
+                liquidationBuffer = Math.min(calculatedBuffer, 100);
 
             } catch (error) {
                 console.error('Error processing portfolio margin metrics:', error);
                 console.error('Account Info received:', accountInfo);
             }
         }
+
+        // Calculate account leverage using the new formula: Total Notional Value / Base Balance
+        accountLeverage = baseBalance > 0 ? Number((totalNotionalValue / baseBalance).toFixed(2)) : 0;
 
         const result = {
             exchange: 'binance',

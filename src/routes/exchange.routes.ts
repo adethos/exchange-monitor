@@ -201,7 +201,7 @@ router.post('/account-metrics', ((req, res) => {
         return res.status(404).json({ error: 'Account not found' });
     }
 
-    // Compose metrics object
+    //  Compose metrics object
     const metrics = {
         baseCurrency: accountData.accountSummary.baseCurrency,
         baseBalance: accountData.accountSummary.baseBalance,

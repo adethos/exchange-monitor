@@ -21,7 +21,7 @@ export class BybitClient {
             this.apiSecret = process.env.BYBIT_API_SECRET || '';
             this.baseUrl = process.env.BYBIT_BASE_URL || 'https://api.bybit.com';
         }
-        
+
         this.lastValidData = {
             positions: [],
             accountSummary: {
@@ -341,18 +341,8 @@ export class BybitClient {
             // Calculate total notional value from all positions
             const totalNotionalValue = await this.calculateTotalNotionalValue(positions);
 
-            // Calculate weighted average leverage from all positions
-            let accountLeverage = 0;
-            if (positions.length > 0) {
-                const weightedLeverageSum = positions.reduce((sum, position) => {
-                    // Weight each position's leverage by its notional value
-                    return sum + (position.leverage * position.notionalValue);
-                }, 0);
-
-                // Divide by total notional value to get weighted average
-                accountLeverage = totalNotionalValue > 0 ?
-                    Number((weightedLeverageSum / totalNotionalValue).toFixed(2)) : 0;
-            }
+            // Calculate account leverage using the new formula: Total Notional Value / Base Balance
+            const accountLeverage = baseBalance > 0 ? Number((totalNotionalValue / baseBalance).toFixed(2)) : 0;
 
             // Process account metrics
             const totalEquity = Number(parseFloat(accountInfo.totalEquity || '0').toFixed(2));
